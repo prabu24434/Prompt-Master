@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Anatomy of a Claude Prompt - AI Generator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            claude: {
+              bg: '#181816',
+              card: '#22221f',
+              border: '#33332e',
+              accent: '#d97757',
+              role: '#3b82f6',
+              task: '#f97316',
+              context: '#14b8a6',
+              reasoning: '#ef4444',
+              stop: '#ec4899',
+              output: '#8b5cf6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #121210;
+      color: #e5e5e0;
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #181816;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #33332e;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d97757;
+    }
+    .anatomy-line {
+      border-left: 3px solid;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-zinc-800 bg-[#181816]/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <!-- Asterisk / Star icon like Anthropic Claude -->
+        <div class="w-9 h-9 rounded-xl bg-[#da6747]/15 border border-[#da6747]/30 flex items-center justify-center text-[#da6747]">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-zinc-100 flex items-center gap-2">
+            Claude Prompt Architect
+            <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Anatomy-Based</span>
+          </h1>
+          <p class="text-xs text-zinc-400">Bangun Master Prompt Berkualitas Tinggi Berdasarkan Struktur Claude Prompt</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btn-show-structure" class="px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition flex items-center gap-1.5">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+          Struktur Prompt
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: Generator Input & Controls (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-6">
+
+      <!-- Input Card -->
+      <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <label for="short-prompt" class="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+              <i data-lucide="pen-tool" class="w-4 h-4 text-[#da6747]"></i>
+              Ide / Prompt Singkat Anda
+            </label>
+            <span class="text-xs text-zinc-400">AI akan melengkapinya</span>
+          </div>
+
+          <textarea id="short-prompt" rows="4" 
+            placeholder="Contoh: Buatkan saya strategi peluncuran produk aplikasi manajemen tugas AI untuk para pendiri startup (founders)."
+            class="w-full bg-[#121210] border border-zinc-700/80 rounded-xl p-3.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#da6747]/50 focus:border-[#da6747] transition resize-none"></textarea>
+
+          <!-- Quick Preset Buttons -->
+          <div class="mt-3">
+            <p class="text-xs text-zinc-400 mb-2 font-medium">Contoh Cepat:</p>
+            <div class="flex flex-wrap gap-1.5" id="presets-container">
+              <!-- Dynamically populated presets -->
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <!-- Language Selector -->
+            <select id="select-lang" class="bg-zinc-800 text-xs text-zinc-300 border border-zinc-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#da6747]">
+              <option value="id" selected>Bahasa: Indonesia 🇮🇩</option>
+              <option value="en">Bahasa: Inggris 🇬🇧</option>
+            </select>
+
+            <select id="select-tone" class="bg-zinc-800 text-xs text-zinc-300 border border-zinc-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#da6747]">
+              <option value="Professional & Strategic">Gaya: Profesional</option>
+              <option value="Direct & Technical">Gaya: Teknis & Detail</option>
+              <option value="Creative & Engaging">Gaya: Kreatif</option>
+              <option value="Concise & Crisp">Gaya: Ringkas & Padat</option>
+            </select>
+          </div>
+
+          <button id="btn-generate" onclick="generateMasterPrompt()" 
+            class="px-5 py-2.5 bg-[#da6747] hover:bg-[#c55637] text-white font-medium text-sm rounded-xl shadow-lg shadow-orange-950/30 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i data-lucide="wand2" class="w-4 h-4"></i>
+            <span>Generate Prompt</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Reference Guide Card (Accordion / Quick Info) -->
+      <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-5 text-xs text-zinc-400 space-y-3">
+        <h3 class="font-semibold text-zinc-200 text-sm flex items-center gap-2">
+          <i data-lucide="layers" class="w-4 h-4 text-orange-400"></i>
+          Struktur Anatomi Prompt (6 Pilar)
+        </h3>
+        <ul class="space-y-2">
+          <li class="flex items-start gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-500 mt-1 shrink-0"></span>
+            <div><strong class="text-blue-400">Role:</strong> Menentukan persona, kepakaran & mindset AI.</div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-2 h-2 rounded-full bg-orange-500 mt-1 shrink-0"></span>
+            <div><strong class="text-orange-400">Task:</strong> Instruksi tugas spesifik dan deliverable akhir.</div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-2 h-2 rounded-full bg-teal-500 mt-1 shrink-0"></span>
+            <div><strong class="text-teal-400">Context:</strong> Fakta dasar, batasan, latar belakang & risiko.</div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-2 h-2 rounded-full bg-red-500 mt-1 shrink-0"></span>
+            <div><strong class="text-red-400">Reasoning:</strong> Alasan pendekatan & ekspektasi cara berpikir.</div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-2 h-2 rounded-full bg-pink-500 mt-1 shrink-0"></span>
+            <div><strong class="text-pink-400">Stop Conditions:</strong> Kriteria lengkap sebelum AI menyelesaikannya.</div>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-2 h-2 rounded-full bg-purple-500 mt-1 shrink-0"></span>
+            <div><strong class="text-purple-400">Output:</strong> Format penyajian, elemen kolom & tata letak hasil.</div>
+          </li>
+        </ul>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Interactive Master Prompt Builder (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+
+      <!-- Action Bar Header -->
+      <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <h2 class="font-bold text-zinc-100 text-base flex items-center gap-2">
+            <i data-lucide="file-text" class="w-5 h-5 text-orange-400"></i>
+            Master Prompt Hasil AI
+          </h2>
+          <span id="badge-status" class="text-xs px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+            Siap Digunakan
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <!-- Switch View Mode -->
+          <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-1 flex text-xs">
+            <button id="btn-view-cards" onclick="setViewMode('cards')" class="px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-100 font-medium">
+              Kartu Visual
+            </button>
+            <button id="btn-view-text" onclick="setViewMode('text')" class="px-2.5 py-1 rounded-md text-zinc-400 hover:text-zinc-200">
+              Plain / XML Text
+            </button>
+          </div>
+
+          <button onclick="copyToClipboard()" class="px-3 py-1.5 bg-[#da6747] hover:bg-[#c55637] text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Salin Prompt</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Overlay State -->
+      <div id="loading-state" class="hidden bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-12 text-center flex-col items-center justify-center space-y-4">
+        <div class="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
+        <div>
+          <h3 class="font-semibold text-zinc-200 text-base">Menganalisis & Mengonstruksi Prompt...</h3>
+          <p class="text-xs text-zinc-400 mt-1">AI sedang membedah ide Anda menjadi 6 komponen anatomi Claude.</p>
+        </div>
+      </div>
+
+      <!-- CARDS VIEW CONTAINER -->
+      <div id="view-cards-container" class="space-y-4">
+
+        <!-- 1. ROLE CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-blue-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">1. Role</span>
+              <span class="text-xs text-zinc-400">Peran & Keahlian AI</span>
+            </div>
+            <button onclick="copySection('role-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="role-text" rows="2" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 transition resize-y font-mono text-xs leading-relaxed">Bertindak sebagai pakar strategi peluncuran produk (Go-To-Market) berpengalaman tinggi dalam meluncurkan aplikasi SaaS tahap awal. Prioritaskan kecepatan traksi pasar dibanding kesempurnaan merek.</textarea>
+        </div>
+
+        <!-- 2. TASK CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-orange-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">2. Task</span>
+              <span class="text-xs text-zinc-400">Tugas & Tujuan Utama</span>
+            </div>
+            <button onclick="copySection('task-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="task-text" rows="2" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-orange-500 transition resize-y font-mono text-xs leading-relaxed">Buat rencana peluncuran 90 hari untuk alat produktivitas AI baru yang ditujukan bagi para pendiri startup. Validasi pesan utama dan diakhiri dengan panduan ringkas siap luncur.</textarea>
+        </div>
+
+        <!-- 3. CONTEXT CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-teal-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-teal-500/10 text-teal-400 border border-teal-500/20">3. Context</span>
+              <span class="text-xs text-zinc-400">Konteks, Data & Latar Belakang</span>
+            </div>
+            <button onclick="copySection('context-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="context-text" rows="5" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-teal-500 transition resize-y font-mono text-xs leading-relaxed">Berikut informasi yang diketahui:
+-Produk: Manajer tugas AI untuk pendiri startup (usia 25-40).
+-Tim: 2 orang (Pendiri + Pemasar Pertumbuhan).
+-Sumber Daya: Anggaran terbatas, 15-20 pengguna beta.
+-Risiko Utama: Adopsi, Retensi, Posisi Pasar.</textarea>
+        </div>
+
+        <!-- 4. REASONING CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-red-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-red-500/10 text-red-400 border border-red-500/20">4. Reasoning</span>
+              <span class="text-xs text-zinc-400">Cara Berpikir & Justifikasi</span>
+            </div>
+            <button onclick="copySection('reasoning-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="reasoning-text" rows="3" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-red-500 transition resize-y font-mono text-xs leading-relaxed">Tujuannya adalah strategi tajam yang siap eksekusi. Dengan memastikan kejelasan target audiens di awal serta mempertahankan logika di setiap langkah, hasil keluaran akan benar-benar dapat ditindaklanjuti secara profesional.</textarea>
+        </div>
+
+        <!-- 5. STOP CONDITIONS CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-pink-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">5. Stop conditions</span>
+              <span class="text-xs text-zinc-400">Kriteria Selesai / Syarat Kelengkapan</span>
+            </div>
+            <button onclick="copySection('stop-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="stop-text" rows="4" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-pink-500 transition resize-y font-mono text-xs leading-relaxed">Berhenti HANYA ketika:
+-Tersusun roadmap 12 minggu dengan 3-4 tindakan per minggu.
+-Setiap tindakan terhubung ke risiko yang ingin diatasi.
+-Rencana diakhiri dengan Keputusan Gerbang Peluncuran (Launch Decision Gate).</textarea>
+        </div>
+
+        <!-- 6. OUTPUT CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-purple-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">6. Output</span>
+              <span class="text-xs text-zinc-400">Format & Struktur Output Terperinci</span>
+            </div>
+            <button onclick="copySection('output-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="output-text" rows="5" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-purple-500 transition resize-y font-mono text-xs leading-relaxed">Sajikan sebagai rencana sprint mingguan. Untuk setiap tindakan sertakan:
+-Aksi: Tugas spesifik yang harus diselesaikan.
+-Penanggung Jawab: Pendiri, Pemasar, atau Desainer.
+-Risiko: Adopsi, Retensi, atau Posisi Pasar.
+-Rasional + Deliverable: Alasan dan hasil nyata.</textarea>
+        </div>
+
+        <!-- 2. TASK CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-orange-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">2. Task</span>
+              <span class="text-xs text-zinc-400">Tugas & Tujuan Utama</span>
+            </div>
+            <button onclick="copySection('task-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="task-text" rows="2" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-orange-500 transition resize-y font-mono text-xs leading-relaxed">Build a 90-day launch plan for a new AI productivity tool for founders. Validate the core messaging, end with a launch-ready brief.</textarea>
+        </div>
+
+        <!-- 3. CONTEXT CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-teal-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-teal-500/10 text-teal-400 border border-teal-500/20">3. Context</span>
+              <span class="text-xs text-zinc-400">Konteks, Data & Latar Belakang</span>
+            </div>
+            <button onclick="copySection('context-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="context-text" rows="5" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-teal-500 transition resize-y font-mono text-xs leading-relaxed">Here's what I know:
+-Product: AI task manager for founders (25-40).
+-Team: 2-person (Founder + Growth marketer).
+-Resources: Lean budget, 15-20 beta users.
+-Key Risks: Adoption, Retention, Positioning.</textarea>
+        </div>
+
+        <!-- 4. REASONING CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-red-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-red-500/10 text-red-400 border border-red-500/20">4. Reasoning</span>
+              <span class="text-xs text-zinc-400">Cara Berpikir & Justifikasi</span>
+            </div>
+            <button onclick="copySection('reasoning-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="reasoning-text" rows="3" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-red-500 transition resize-y font-mono text-xs leading-relaxed">The goal is a crisp, launch-ready strategy. By locking in ICP clarity upfront and asking you to defend each step, the output will be truly actionable and founder-grade.</textarea>
+        </div>
+
+        <!-- 5. STOP CONDITIONS CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-pink-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">5. Stop conditions</span>
+              <span class="text-xs text-zinc-400">Kriteria Selesai / Syarat Kelengkapan</span>
+            </div>
+            <button onclick="copySection('stop-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="stop-text" rows="4" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-pink-500 transition resize-y font-mono text-xs leading-relaxed">Only stop when:
+-A 12-week roadmap with 3-4 actions/week.
+-Every action links to the risk it addresses.
+-Plan ends with a final Launch Decision Gate.</textarea>
+        </div>
+
+        <!-- 6. OUTPUT CARD -->
+        <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl p-4 anatomy-line border-l-purple-500 shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-bold rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">6. Output</span>
+              <span class="text-xs text-zinc-400">Format & Struktur Output Terperinci</span>
+            </div>
+            <button onclick="copySection('output-text')" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Salin
+            </button>
+          </div>
+          <textarea id="output-text" rows="5" class="w-full bg-[#141412] border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 focus:outline-none focus:border-purple-500 transition resize-y font-mono text-xs leading-relaxed">Present as a weekly sprint plan. For each action:
+-Action: The specific task to complete.
+-Owner: Founder, Growth lead, or Designer.
+-Risk: Adoption, Retention, or Positioning.
+-Rationale + Output: reasoning, deliverable.</textarea>
+        </div>
+
+      </div>
+
+      <!-- TEXT VIEW CONTAINER (Hidden by default) -->
+      <div id="view-text-container" class="hidden flex-col space-y-3">
+        <div class="flex items-center justify-between text-xs text-zinc-400">
+          <span>Format Siap Tempel ke Claude (XML Tags / Markdown)</span>
+          <select id="select-format" onchange="updateCombinedText()" class="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-zinc-200">
+            <option value="markdown">Format: Standard Paragraphs</option>
+            <option value="xml">Format: XML Tags (&lt;role&gt;, &lt;task&gt;...)</option>
+          </select>
+        </div>
+        <textarea id="combined-text" rows="24" readonly class="w-full bg-[#121210] border border-zinc-800 rounded-2xl p-4 font-mono text-xs text-zinc-200 leading-relaxed focus:outline-none"></textarea>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Modal Structure Graphic -->
+  <div id="modal-structure" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#1c1c1a] border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <h3 class="font-bold text-zinc-100 flex items-center gap-2 text-base">
+          <i data-lucide="layout" class="w-5 h-5 text-orange-400"></i>
+          The Anatomy of a Claude Prompt
+        </h3>
+        <button id="btn-close-modal" class="text-zinc-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <p class="text-xs text-zinc-300">
+        Struktur ini dirancang khusus untuk memanfaatkan kemampuan penalaran mendalam (deep reasoning) Claude dan LLM modern agar memberikan hasil yang presisi dan tidak bertele-tele.
+      </p>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+          <strong class="text-blue-400 block mb-1">1. Role (Siapa Anda?)</strong>
+          Mengatur mental model AI. Menentukan tingkat keahlian, prioritas, dan gaya pandang.
+        </div>
+        <div class="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+          <strong class="text-orange-400 block mb-1">2. Task (Apa tugasnya?)</strong>
+          Menjelaskan tujuan eksplisit dan apa yang harus diselesaikan AI.
+        </div>
+        <div class="p-3 bg-teal-500/10 border border-teal-500/30 rounded-xl">
+          <strong class="text-teal-400 block mb-1">3. Context (Fakta pendukung)</strong>
+          Variabel penting: target audiens, keterbatasan dana/waktu, produk, dan risiko.
+        </div>
+        <div class="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+          <strong class="text-red-400 block mb-1">4. Reasoning (Mengapa pendekatan ini?)</strong>
+          Menjelaskan logika di balik instruksi agar AI mengambil keputusan yang tepat.
+        </div>
+        <div class="p-3 bg-pink-500/10 border border-pink-500/30 rounded-xl">
+          <strong class="text-pink-400 block mb-1">5. Stop Conditions (Kapan dianggap selesai?)</strong>
+          Mencegah AI berhenti terlalu cepat atau memberikan jawaban yang mengambang.
+        </div>
+        <div class="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+          <strong class="text-purple-400 block mb-1">6. Output (Bagaimana penyajiaannya?)</strong>
+          Mendefinisikan bentuk persis keluaran (tabel, bullet points, JSON, sprint plan, dll).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-zinc-800 border border-zinc-700 text-zinc-100 text-xs px-4 py-2.5 rounded-xl shadow-2xl transition transform translate-y-12 opacity-0 flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-message">Teks berhasil disalin!</span>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Preset Data
+    const PRESETS = [
+      {
+        label: "Peluncuran SaaS",
+        prompt: "Buatkan rencana peluncuran 90 hari untuk aplikasi manajemen tugas AI khusus founder startup. Validasi pesan dan risikonya."
+      },
+      {
+        label: "Refactor Kode",
+        prompt: "Refactor backend API Python agar efisien memori, mendukung konkurensi tinggi, dan memiliki logging error terstruktur."
+      },
+      {
+        label: "Seri Konten LinkedIn",
+        prompt: "Buat 5 seri postingan LinkedIn tentang otomatisasi AI B2B dengan hook menarik dan Call-to-Action yang kuat."
+      },
+      {
+        label: "Playbook Layanan Pelanggan",
+        prompt: "Rancang panduan respons customer support untuk menangani keluhan tagihan dan pelanggan yang tidak puas secara profesional."
+      }
+    ];
+
+    // Initialize Presets UI
+    const presetsContainer = document.getElementById('presets-container');
+    PRESETS.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = "px-2.5 py-1 text-[11px] bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-lg border border-zinc-700/60 transition";
+      btn.innerText = p.label;
+      btn.onclick = () => {
+        document.getElementById('short-prompt').value = p.prompt;
+      };
+      presetsContainer.appendChild(btn);
+    });
+
+    // View Mode Toggle
+    let currentView = 'cards';
+    function setViewMode(mode) {
+      currentView = mode;
+      const cardsView = document.getElementById('view-cards-container');
+      const textView = document.getElementById('view-text-container');
+      const btnCards = document.getElementById('btn-view-cards');
+      const btnText = document.getElementById('btn-view-text');
+
+      if (mode === 'cards') {
+        cardsView.classList.remove('hidden');
+        textView.classList.add('hidden');
+        btnCards.className = "px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-100 font-medium";
+        btnText.className = "px-2.5 py-1 rounded-md text-zinc-400 hover:text-zinc-200";
+      } else {
+        cardsView.classList.add('hidden');
+        textView.classList.remove('hidden');
+        btnText.className = "px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-100 font-medium";
+        btnCards.className = "px-2.5 py-1 rounded-md text-zinc-400 hover:text-zinc-200";
+        updateCombinedText();
+      }
+    }
+
+    // Modal Control
+    const modal = document.getElementById('modal-structure');
+    document.getElementById('btn-show-structure').onclick = () => modal.classList.remove('hidden');
+    document.getElementById('btn-close-modal').onclick = () => modal.classList.add('hidden');
+
+    // Toast Notification
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').innerText = msg;
+      toast.classList.remove('translate-y-12', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-12', 'opacity-0');
+      }, 2500);
+    }
+
+    // Copy to Clipboard
+    function copyToClipboard() {
+      const textToCopy = getFullPromptText();
+      const el = document.createElement('textarea');
+      el.value = textToCopy;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast("Master Prompt berhasil disalin!");
+    }
+
+    function copySection(id) {
+      const text = document.getElementById(id).value;
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast("Bagian berhasil disalin!");
+    }
+
+    function getFullPromptText() {
+      const role = document.getElementById('role-text').value;
+      const task = document.getElementById('task-text').value;
+      const context = document.getElementById('context-text').value;
+      const reasoning = document.getElementById('reasoning-text').value;
+      const stop = document.getElementById('stop-text').value;
+      const output = document.getElementById('output-text').value;
+      const format = document.getElementById('select-format')?.value || 'markdown';
+
+      if (format === 'xml') {
+        return `<role>\n${role}\n</role>\n\n<task>\n${task}\n</task>\n\n<context>\n${context}\n</context>\n\n<reasoning>\n${reasoning}\n</reasoning>\n\n<stop_conditions>\n${stop}\n</stop_conditions>\n\n<output_format>\n${output}\n</output_format>`;
+      } else {
+        return `${role}\n\n${task}\n\n${context}\n\n${reasoning}\n\n${stop}\n\n${output}`;
+      }
+    }
+
+    function updateCombinedText() {
+      document.getElementById('combined-text').value = getFullPromptText();
+    }
+
+    // Update combined text when inputs change
+    ['role-text', 'task-text', 'context-text', 'reasoning-text', 'stop-text', 'output-text'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (currentView === 'text') updateCombinedText();
+      });
+    });
+
+    // API Generation Function with Exponential Backoff
+    async function generateMasterPrompt() {
+      const userPrompt = document.getElementById('short-prompt').value.trim();
+      if (!userPrompt) {
+        showToast("Tolong isi prompt singkat terlebih dahulu!");
+        return;
+      }
+
+      const tone = document.getElementById('select-tone').value;
+      const lang = document.getElementById('select-lang').value;
+      const targetLangName = lang === 'id' ? 'Bahasa Indonesia' : 'English';
+
+      // Show Loading State
+      const cardsView = document.getElementById('view-cards-container');
+      const textView = document.getElementById('view-text-container');
+      const loadingState = document.getElementById('loading-state');
+      const btnGen = document.getElementById('btn-generate');
+
+      cardsView.classList.add('hidden');
+      textView.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+      loadingState.classList.add('flex');
+      btnGen.disabled = true;
+
+      const systemInstruction = `You are a master AI Prompt Engineer specializing in Anthropic Claude prompt design.
+Your task is to take a short input prompt or user request and transform it into a highly structured, expert-level master prompt following "The Anatomy of a Claude Prompt".
+
+The anatomy consists of EXACTLY 6 components:
+1. role: Define a high-level persona, domain expertise, and operational mindset. (e.g. "Bertindak sebagai..." in Indonesian or "Act as..." in English)
+2. task: Direct, concise statement of the main objective and primary deliverable.
+3. context: Detailed breakdown of background facts, environment, target audience, parameters, or risks (structured with clear key-value lists or bullets).
+4. reasoning: Explanation of WHY this strategic approach is taken, asking Claude to defend or validate steps for maximum quality.
+5. stop_conditions: Explicit requirements or criteria that MUST be satisfied before Claude completes the output.
+6. output: Exact format, layout, columns, or bullet structure for how Claude must present the final result.
+
+CRITICAL REQUIREMENT: You MUST generate all the prompt values in ${targetLangName.toUpperCase()}. Ensure the generated master prompt content is completely written in ${targetLangName}.`;
+
+      const schema = {
+        type: "OBJECT",
+        properties: {
+          role: { type: "STRING", description: `The persona and expertise statement in ${targetLangName}.` },
+          task: { type: "STRING", description: `The core task and deliverable in ${targetLangName}.` },
+          context: { type: "STRING", description: `Background context, product specs, risks, resources in ${targetLangName}.` },
+          reasoning: { type: "STRING", description: `Strategic rationale and deep reasoning guidelines in ${targetLangName}.` },
+          stop_conditions: { type: "STRING", description: `Criteria that must be met before ending in ${targetLangName}.` },
+          output: { type: "STRING", description: `Detailed presentation format and section requirements in ${targetLangName}.` }
+        },
+        required: ["role", "task", "context", "reasoning", "stop_conditions", "output"]
+      };
+
+      const payload = {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `Transform this user idea into a Master Claude Prompt adhering strictly to the 6 anatomy parts.\nTarget Output Language: ${targetLangName}\nDesired Tone: ${tone}\n\nUser Idea: "${userPrompt}"` }]
+          }
+        ],
+        systemInstruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: schema
+        }
+      };
+
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      // Retry helper with Exponential Backoff
+      async function fetchWithRetry(url, options, maxRetries = 3) {
+        let delay = 1000;
+        for (let i = 0; i < maxRetries; i++) {
+          try {
+            const res = await fetch(url, options);
+            if (res.ok) return res;
+          } catch (e) {
+            // ignore retry error log
+          }
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+        return fetch(url, options);
+      }
+
+      try {
+        const response = await fetchWithRetry(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (jsonText) {
+          const parsed = JSON.parse(jsonText);
+          
+          document.getElementById('role-text').value = parsed.role || '';
+          document.getElementById('task-text').value = parsed.task || '';
+          document.getElementById('context-text').value = parsed.context || '';
+          document.getElementById('reasoning-text').value = parsed.reasoning || '';
+          document.getElementById('stop-text').value = parsed.stop_conditions || '';
+          document.getElementById('output-text').value = parsed.output || '';
+
+          showToast("Master Prompt berhasil dibuat!");
+        } else {
+          showToast("Gagal menghasilkan prompt, silakan coba lagi.");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Terjadi kesalahan jaringan atau API.");
+      } finally {
+        loadingState.classList.remove('flex');
+        loadingState.classList.add('hidden');
+        btnGen.disabled = false;
+        setViewMode(currentView);
+      }
+    }
+  </script>
+</body>
+</html>
